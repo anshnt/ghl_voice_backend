@@ -2,6 +2,8 @@ import express from 'express';
 import { query } from '../db/index.js';
 import { asyncRoute } from '../utils/asyncRoute.js';
 import { HttpError } from '../utils/httpError.js';
+import { demoTranscript, demoTranscripts } from '../services/demoData.js';
+import { shouldUseDemoFallback } from '../utils/demoFallback.js';
 
 const router = express.Router();
 
@@ -53,18 +55,30 @@ router.get(
     const agentId = req.query.agentId ? Number(req.query.agentId) : null;
     const limit = clampPagination(req.query.limit, 20, 100);
     const offset = clampPagination(req.query.offset, 0, 10000);
-    const result = await query(LIST_TRANSCRIPTS, [agentId, limit, offset]);
-    res.json({ transcripts: result.rows, limit, offset });
+    try {
+      const result = await query(LIST_TRANSCRIPTS, [agentId, limit, offset]);
+      res.json({ transcripts: result.rows, limit, offset });
+    } catch (error) {
+      if (!shouldUseDemoFallback(error, 'GET /transcripts')) throw error;
+      res.json({ transcripts: demoTranscripts({ agentId, limit, offset }), limit, offset });
+    }
   })
 );
 
 router.get(
   '/:id',
   asyncRoute(async (req, res) => {
-    const result = await query(GET_TRANSCRIPT, [Number(req.params.id)]);
-    const transcript = result.rows[0];
-    if (!transcript) throw new HttpError(404, 'Transcript not found');
-    res.json({ transcript });
+    try {
+      const result = await query(GET_TRANSCRIPT, [Number(req.params.id)]);
+      const transcript = result.rows[0];
+      if (!transcript) throw new HttpError(404, 'Transcript not found');
+      res.json({ transcript });
+    } catch (error) {
+      if (!shouldUseDemoFallback(error, 'GET /transcripts/:id')) throw error;
+      const transcript = demoTranscript(req.params.id);
+      if (!transcript) throw new HttpError(404, 'Transcript not found');
+      res.json({ transcript });
+    }
   })
 );
 
