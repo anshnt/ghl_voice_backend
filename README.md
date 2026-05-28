@@ -70,11 +70,22 @@ sequenceDiagram
   participant DB
   participant Gemini
 
+  Note over API,DB: Ingestion Flow
+  API->>DB: Store raw transcript
+  DB-->>API: Transcript saved
+  API->>Gemini: Request call analysis
+  Gemini-->>API: Return scores & recommendations
+  API->>DB: Store analysis results
+  DB-->>API: Analysis saved
+
+  Note over User,Frontend: Dashboard Flow
   User->>Frontend: Opens dashboard
   Frontend->>API: GET /kpi/summary
   API->>DB: Aggregate transcript scores
   DB-->>API: KPI metrics
   API-->>Frontend: Summary, agents, trends
+
+  Note over User,Frontend: Transcript Detail Flow
   User->>Frontend: Opens transcript
   Frontend->>API: GET /transcripts/:id
   API->>DB: Fetch transcript + analysis
