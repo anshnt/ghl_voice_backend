@@ -9,6 +9,7 @@
     "migrate": "node src/db/migrate.js",
     "seed": "node src/db/seed.js",
     "lint": "eslint .",
+    "test": "vitest run",
     "format": "prettier --write ."
   },
   "dependencies": {
@@ -26,6 +27,8 @@
     "eslint-config-prettier": "^10.0.1",
     "globals": "^15.14.0",
     "nodemon": "^3.1.9",
-    "prettier": "^3.4.2"
+    "prettier": "^3.4.2",
+    "supertest": "^7.0.0",
+    "vitest": "^3.0.5"
   }
 }

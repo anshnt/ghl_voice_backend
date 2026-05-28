@@ -2,6 +2,18 @@
 
 The backend is an Express API that ingests HighLevel Voice AI call transcripts, stores them in PostgreSQL, analyzes them with Gemini, and exposes dashboard-ready analytics to the Vue frontend.
 
+## New Features
+
+### Demo Data System
+- **`src/services/demoData.js`**: Generates realistic demo data for 5 agents with 180 analyzed calls
+- **`src/utils/demoFallback.js`**: Provides graceful fallback when PostgreSQL is unavailable
+- **`src/services/demoData.test.js`**: Unit tests for demo data generation
+
+### AI Analysis
+- **`src/services/geminiAnalyzer.js`**: Gemini-powered call analysis
+- **`src/services/aiAdvisor.js`**: AI-driven coaching recommendations
+- **`src/routes/ai.js`**: API endpoints for AI suggestions and questions
+
 ## Local Run
 
 Create `backend/.env`:
