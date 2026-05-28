@@ -33,6 +33,31 @@ function toExpiresAt(tokenData) {
 }
 
 export class PostgresSessionStorage {
+  setClientId(clientId) {
+    this.clientId = clientId;
+  }
+
+  async init() {
+    return true;
+  }
+
+  async disconnect() {
+    return true;
+  }
+
+  async getAccessToken(locationId) {
+    const session = await this.getSession(locationId);
+    return session?.access_token || null;
+  }
+
+  async getSession(locationId) {
+    return this.get(locationId);
+  }
+
+  async setSession(locationId, tokenData) {
+    return this.set(locationId, tokenData);
+  }
+
   async get(locationId) {
     try {
       const result = await query(GET_ACCOUNT, [locationId]);
@@ -43,7 +68,9 @@ export class PostgresSessionStorage {
         locationId: account.location_id,
         access_token: account.access_token,
         refresh_token: account.refresh_token,
-        token_expires_at: account.token_expires_at
+        token_expires_at: account.token_expires_at,
+        expire_at: new Date(account.token_expires_at).getTime(),
+        userType: 'Location'
       };
     } catch (error) {
       logger.error('Failed to load GHL session', { locationId, message: error.message });

@@ -3,6 +3,8 @@ import { query } from '../db/index.js';
 import { asyncRoute } from '../utils/asyncRoute.js';
 import { HttpError } from '../utils/httpError.js';
 import { getKpiSummary } from '../services/kpiEvaluator.js';
+import { demoAgentInsights, demoAgents } from '../services/demoData.js';
+import { shouldUseDemoFallback } from '../utils/demoFallback.js';
 
 const router = express.Router();
 
@@ -85,36 +87,48 @@ function buildKpiBreakdown(criteria, rows) {
 router.get(
   '/',
   asyncRoute(async (req, res) => {
-    const result = await query(LIST_AGENTS, [req.query.locationId || null]);
-    res.json({ agents: result.rows });
+    try {
+      const result = await query(LIST_AGENTS, [req.query.locationId || null]);
+      res.json({ agents: result.rows });
+    } catch (error) {
+      if (!shouldUseDemoFallback(error, 'GET /agents')) throw error;
+      res.json({ agents: demoAgents() });
+    }
   })
 );
 
 router.get(
   '/:id/insights',
   asyncRoute(async (req, res) => {
-    const agentResult = await query(GET_AGENT, [Number(req.params.id)]);
-    const agent = agentResult.rows[0];
-    if (!agent) throw new HttpError(404, 'Agent not found');
+    try {
+      const agentResult = await query(GET_AGENT, [Number(req.params.id)]);
+      const agent = agentResult.rows[0];
+      if (!agent) throw new HttpError(404, 'Agent not found');
 
-    const [summary, recommendationsResult] = await Promise.all([
-      getKpiSummary(agent.id),
-      query(RECENT_RECOMMENDATIONS, [agent.id])
-    ]);
-    const historyResult = await query(KPI_SCORE_HISTORY, [agent.id]);
-    const criteria = agent.kpi_config?.criteria || [];
+      const [summary, recommendationsResult] = await Promise.all([
+        getKpiSummary(agent.id),
+        query(RECENT_RECOMMENDATIONS, [agent.id])
+      ]);
+      const historyResult = await query(KPI_SCORE_HISTORY, [agent.id]);
+      const criteria = agent.kpi_config?.criteria || [];
 
-    const priorityRank = { high: 0, medium: 1, low: 2 };
-    const recommendations = recommendationsResult.rows
-      .sort((a, b) => (priorityRank[a.priority] ?? 3) - (priorityRank[b.priority] ?? 3))
-      .slice(0, 3);
+      const priorityRank = { high: 0, medium: 1, low: 2 };
+      const recommendations = recommendationsResult.rows
+        .sort((a, b) => (priorityRank[a.priority] ?? 3) - (priorityRank[b.priority] ?? 3))
+        .slice(0, 3);
 
-    res.json({
-      agent,
-      summary,
-      recommendations,
-      kpi_breakdown: buildKpiBreakdown(criteria, historyResult.rows)
-    });
+      res.json({
+        agent,
+        summary,
+        recommendations,
+        kpi_breakdown: buildKpiBreakdown(criteria, historyResult.rows)
+      });
+    } catch (error) {
+      if (!shouldUseDemoFallback(error, 'GET /agents/:id/insights')) throw error;
+      const payload = demoAgentInsights(req.params.id);
+      if (!payload.agent) throw new HttpError(404, 'Agent not found');
+      res.json(payload);
+    }
   })
 );
 

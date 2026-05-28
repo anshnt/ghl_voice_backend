@@ -3,6 +3,8 @@ import { query } from '../db/index.js';
 import { asyncRoute } from '../utils/asyncRoute.js';
 import { HttpError } from '../utils/httpError.js';
 import { getAgentSummaries, getKpiSummary } from '../services/kpiEvaluator.js';
+import { demoAgents, demoSummary } from '../services/demoData.js';
+import { shouldUseDemoFallback } from '../utils/demoFallback.js';
 
 const router = express.Router();
 
@@ -16,9 +18,17 @@ const UPDATE_KPI = `
 router.get(
   '/summary',
   asyncRoute(async (req, res) => {
-    const summary = await getKpiSummary(req.query.agentId || null);
-    const agents = req.query.agentId ? [] : await getAgentSummaries();
-    res.json({ summary, agents });
+    try {
+      const summary = await getKpiSummary(req.query.agentId || null);
+      const agents = req.query.agentId ? [] : await getAgentSummaries();
+      res.json({ summary, agents });
+    } catch (error) {
+      if (!shouldUseDemoFallback(error, 'GET /kpi/summary')) throw error;
+      res.json({
+        summary: demoSummary(req.query.agentId || null),
+        agents: req.query.agentId ? [] : demoAgents()
+      });
+    }
   })
 );
 
